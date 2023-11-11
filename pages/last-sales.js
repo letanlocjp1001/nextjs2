@@ -1,36 +1,56 @@
 import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 
-function LastSalesPage() {
-  const [sales, setSales] = useState()
-  const [isLoading, setIsLoading] = useState(false)
+function LastSalesPage(props) {
+  const [sales, setSales] = useState(props.sales)
+  // const [isLoading, setIsLoading] = useState(false)
+
+  const fetcher = (...args) => fetch(...args).then((res) => res.json())
+  const { data, error, isLoading } = useSWR(
+    'https://nextjs-course-4a639-default-rtdb.firebaseio.com/sales.json',
+    fetcher
+  )
 
   useEffect(() => {
-    setIsLoading(true)
+    if (data) {
+      const transformedSales = []
+      for (const key in data) {
+        transformedSales.push({
+          id: key,
+          username: data[key].username,
+          volume: data[key].volume,
+        })
+      }
 
-    fetch('https://nextjs-course-4a639-default-rtdb.firebaseio.com/sales.json')
-      .then((response) => response.json())
-      .then((data) => {
-        const transformedSales = []
+      setSales(transformedSales)
+    }
+  }, [data])
+  // useEffect(() => {
+  //   setIsLoading(true)
 
-        for (const key in data) {
-          transformedSales.push({
-            id: key,
-            username: data[key].username,
-            volume: data[key].volume,
-          })
-        }
+  //   fetch('https://nextjs-course-4a639-default-rtdb.firebaseio.com/sales.json')
+  //     .then((response) => response.json())
+  //     .then((data) => {
+  //       const transformedSales = []
 
-        setSales(transformedSales)
-        setIsLoading(false)
-      })
-  }, [])
+  //       for (const key in data) {
+  //         transformedSales.push({
+  //           id: key,
+  //           username: data[key].username,
+  //           volume: data[key].volume,
+  //         })
+  //       }
 
-  if (isLoading) {
-    return <p>Loading....</p>
-  }
+  //       setSales(transformedSales)
+  //       setIsLoading(false)
+  //     })
+  // }, [])
 
-  if (!sales) {
+  if (error) {
     return <p>no data</p>
+  }
+  if (isLoading && !sales) {
+    return <p>Loading....</p>
   }
 
   return (
@@ -45,3 +65,23 @@ function LastSalesPage() {
 }
 
 export default LastSalesPage
+
+export async function getStaticProps() {
+  const response = await fetch(
+    'https://nextjs-course-4a639-default-rtdb.firebaseio.com/sales.json'
+  )
+  const data = await response.json()
+  // .then((response) => response.json())
+  // .then((data) => {
+  const transformedSales = []
+
+  for (const key in data) {
+    transformedSales.push({
+      id: key,
+      username: data[key].username,
+      volume: data[key].volume,
+    })
+  }
+  return { props: { sales: transformedSales } }
+  // })
+}
